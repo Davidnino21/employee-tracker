@@ -19,13 +19,43 @@
 // ```
 
 const inquirer = require('inquirer');
+const cTable = require('console.table');
+const db = require('./config/db')
 
-inquirer
+
+function displayQuestion() {
+    inquirer
     .prompt([
         {
             type: 'list',
-            name: 'text',
+            name: 'action',
             message: 'What would you like to do?',
-            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role' ]
+            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role']
         },
     ])
+
+    .then((answers) => {
+
+        switch (answers.action) {
+            case 'View all departments':
+                showDepartments()
+                break;
+
+            default:
+                break;
+        }
+    })
+}
+
+function showDepartments() {
+ db.query('SELECT * FROM department', (err, result) => {
+    if (err) throw err
+
+    console.table(result)
+    displayQuestion()
+ })
+}
+
+
+
+displayQuestion()
