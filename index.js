@@ -25,37 +25,126 @@ const db = require('./config/db')
 
 function displayQuestion() {
     inquirer
-    .prompt([
-        {
-            type: 'list',
-            name: 'action',
-            message: 'What would you like to do?',
-            choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role']
-        },
-    ])
+        .prompt([
+            {
+                type: 'list',
+                name: 'action',
+                message: 'What would you like to do?',
+                choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role']
+            },
+        ])
 
-    .then((answers) => {
+        .then((answers) => {
 
-        switch (answers.action) {
-            case 'View all departments':
-                showDepartments()
-                break;
-
-            default:
-                break;
-        }
-    })
+            switch (answers.action) {
+                case 'View all departments':
+                    showDepartments()
+                    break;
+                case 'View all roles':
+                    showRoles();
+                    break;
+                case 'View all employees':
+                    showEmployees();
+                    break;
+                case 'Add a department':
+                    addDepartment();
+                    break;
+                case 'Add a role':
+                    addRole();
+                    break;
+                default:
+                    break;
+            }
+        })
 }
 
 function showDepartments() {
- db.query('SELECT * FROM department', (err, result) => {
-    if (err) throw err
+    db.query('SELECT * FROM department', (err, result) => {
+        if (err) throw err;
 
-    console.table(result)
-    displayQuestion()
- })
+        console.table(result);
+        displayQuestion();
+    });
 }
 
+function showRoles() {
+    db.query('SELECT * FROM role', (err, result) => {
+        if (err) throw err;
+
+        console.table(result);
+        displayQuestion();
+    });
+}
+function showEmployees() {
+    db.query('SELECT * FROM employee', (err, result) => {
+        if (err) throw err;
+
+        console.table(result);
+        displayQuestion();
+    });
+}
+function addDepartment() {
+    inquirer
+        .prompt([
+            {
+                type: 'input',
+                name: 'departmentName',
+                message: 'What is the name of the department',
+            },
+        ])
+        .then((answers) => {
+            const departmentName = answers.departmentName;
+            db.query('INSERT INTO department (name) VALUES (?)', [departmentName], (err, result) => {
+                if (err) throw err;
+                console.log(`New department '${departmentName}' Added to the database`);
+                displayQuestion()
+            })
+        })
+}
+function addRole() {
+    inquirer
+        .prompt([
+            {
+                type: 'input',
+                name: 'roleName',
+                message: 'What is the name of the role?',
+            },
+            {
+                type: 'input',
+                name: 'roleSalary',
+                message: 'What is the salary of the role?',
+            },
+            {
+                type: 'list',
+                name: 'roleDepartment',
+                message: 'Which department does the role belong to?',
+                choices: ['Engineering', 'Finances', 'Web Development', 'Sales']
+            },
+        ])
+        .then((answers) => {
+            const roleName = answers.roleName;
+            const roleSalary = answers.roleSalary;
+            const roleDepartment = answers.roleDepartment;
+
+            db.query(
+                'INSERT INTO role (title, salary, department_id)) VALUES (?, ?, (SELECT id FROM department WHERE name =?))',
+                [roleName, roleSalary, roleDepartment],
+                (err, result) => {
+                if(err) throw err;
+                console.log(`New role '${roleName}' Added to the database`);
+                displayQuestion();
+            }
+            );
+        });
+
+    }
 
 
 displayQuestion()
+
+
+
+
+
+
+
