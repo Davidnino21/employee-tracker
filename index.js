@@ -1,23 +1,3 @@
-// ```md
-// GIVEN a command-line application that accepts user input
-// WHEN I start the application
-// THEN I am presented with the following options: view all departments, view all roles, view all employees, add a department, add a role, add an employee, and update an employee role
-// WHEN I choose to view all departments
-// THEN I am presented with a formatted table showing department names and department ids
-// WHEN I choose to view all roles
-// THEN I am presented with the job title, role id, the department that role belongs to, and the salary for that role
-// WHEN I choose to view all employees
-// THEN I am presented with a formatted table showing employee data, including employee ids, first names, last names, job titles, departments, salaries, and managers that the employees report to
-// WHEN I choose to add a department
-// THEN I am prompted to enter the name of the department and that department is added to the database
-// WHEN I choose to add a role
-// THEN I am prompted to enter the name, salary, and department for the role and that role is added to the database
-// WHEN I choose to add an employee
-// THEN I am prompted to enter the employee’s first name, last name, role, and manager, and that employee is added to the database
-// WHEN I choose to update an employee role
-// THEN I am prompted to select an employee to update and their new role and this information is updated in the database 
-// ```
-
 const inquirer = require('inquirer');
 const cTable = require('console.table');
 const dbConnection = require('./config/db')
@@ -55,6 +35,9 @@ function displayQuestion() {
                 case 'Add an employee':
                     addEmployee();
                     break;
+                case 'Update an employee role':
+                    updateEmployee();
+                    break;
                 default:
                     break;
             }
@@ -75,7 +58,7 @@ async function showDepartments() {
 async function showRoles() {
     const db = await dbConnection()
     try {
-        const result = await db.query('SELECT * FROM role')
+        const result = await db.query('SELECT role.id, role.title, department.name AS department, role.salary FROM role JOIN department ON role.department_id = department.id')
         console.table(result[0]);
         displayQuestion();
     } catch (error) {
@@ -86,7 +69,8 @@ async function showRoles() {
 async function showEmployees() {
     const db = await dbConnection()
     try {
-        const result = await db.query('SELECT * FROM employee')
+        const result = await db.query(`SELECT e.id, e.first_name, e.last_name, r.title, d.name AS department, r.salary, 
+        m.last_name AS manager FROM employee as e JOIN role as r ON e.role_id = r.id JOIN department AS d ON r.department_id = d.id LEFT JOIN employee AS m ON e.manager_id = m.id`)
         console.table(result[0]);
         displayQuestion();
     } catch (error) {
@@ -201,6 +185,41 @@ async function addEmployee() {
     }
 
 }
+
+async function updateEmployee() {
+    const db = await dbConnection()
+    try {
+        const results = await db.query('SELECT * FROM employee')
+        const employees = results[0].map(e => ({ name: `${e.first_name} ${e.last_name}`, value: e.id }));
+        const result = await db.query('SELECT * FROM role')
+        const roles = result[0].map(r => ({ name: r.title, value: r.id }))
+
+        const answers = await inquirer
+            .prompt([
+                {
+                    type: 'list',
+                    name: 'employeeId',
+                    message: 'Which employee role do you want to update?',
+                    choices: employees,
+                },
+                {
+                    type: 'list',
+                    name: 'employeeRole',
+                    message: 'Which role do you want to assign the selected employee?',
+                    choices: roles,
+                },
+            ])
+
+        const { employeeId, employeeRole } = answers
+        await db.query(
+            'UPDATE employee SET role_id = ? WHERE id = ?', [employeeRole, employeeId])
+        console.log('Updated employees role');
+        displayQuestion();
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 
 displayQuestion()
 
